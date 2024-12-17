@@ -12,7 +12,9 @@ const findUserById = async (id) => {
 
     return result.rows[0];
   } catch (error) {
+console.log(error)
     throw new Error("Something went wrong");
+    
   }
 };
 
@@ -27,6 +29,7 @@ const findUserByEmail = async (email) => {
     );
     return result.rows[0];
   } catch (error) {
+        console.log(error)
     throw new Error("Something went wrong");
   }
 };
