@@ -70,13 +70,47 @@ const topUp = async ({ walletId, amount, description }) => {
 const findAllTransactionsByWalletId = async (walletId) => {
   const client = await pool.connect();
   try {
-    const result = await client.query(
-      `SELECT * FROM transactions WHERE wallet_id = $1`,
-      [walletId]
-    );
+    const query = `
+      SELECT 
+    t.id AS transaction_id,
+    t.transaction_type,
+    t.amount,
+    t.description,
+    t.transaction_date,
+    t.recipient_wallet_id,
+    CASE 
+        WHEN t.transaction_type = 'top-up' THEN u.id
+        WHEN t.transaction_type = 'transfer' AND t.wallet_id = $1 THEN r_u.id
+        WHEN t.transaction_type = 'transfer' AND t.recipient_wallet_id = $1 THEN u.id
+    END AS recipient_id,
+    CASE 
+        WHEN t.transaction_type = 'top-up' THEN u.username
+        WHEN t.transaction_type = 'transfer' AND t.wallet_id = $1 THEN r_u.username
+        WHEN t.transaction_type = 'transfer' AND t.recipient_wallet_id = $1 THEN u.username
+    END AS recipient_username,
+    CASE 
+        WHEN t.transaction_type = 'top-up' THEN u.fullname
+        WHEN t.transaction_type = 'transfer' AND t.wallet_id = $1 THEN r_u.fullname
+        WHEN t.transaction_type = 'transfer' AND t.recipient_wallet_id = $1 THEN u.fullname
+    END AS recipient_fullname,
+    CASE 
+        WHEN t.transaction_type = 'top-up' THEN u.email
+        WHEN t.transaction_type = 'transfer' AND t.wallet_id = $1 THEN r_u.email
+        WHEN t.transaction_type = 'transfer' AND t.recipient_wallet_id = $1 THEN u.email
+    END AS recipient_email
+    FROM transactions t
+    LEFT JOIN wallets r_w ON t.recipient_wallet_id = r_w.id
+    LEFT JOIN users r_u ON r_w.user_id = r_u.id
+    LEFT JOIN wallets w ON t.wallet_id = w.id
+    LEFT JOIN users u ON w.user_id = u.id
+    WHERE t.wallet_id = $1 OR t.recipient_wallet_id = $1;
+    `;
+    const result = await client.query(query, [walletId]);
     return result.rows;
   } catch (error) {
-    throw new Error("Something when wrongg");
+    throw new Error("Something went wrong while fetching transactions");
+  } finally {
+    client.release();
   }
 };
 
