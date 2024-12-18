@@ -76,7 +76,7 @@ const findAllTransactionsByWalletId = async (walletId) => {
     );
     return result.rows;
   } catch (error) {
-    throw new Error("Something when wrong");
+    throw new Error("Something when wrongg");
   }
 };
 
